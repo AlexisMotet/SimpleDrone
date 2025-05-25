@@ -55,7 +55,6 @@ class Drone:
         omega_dot = self.Jinv @ (torque - np.cross(omega, self.params.inertia @ omega))
         return DroneStateDerivatives(state.vel, acc, quat_dot, omega_dot)
 
-
     def compute_accelerations(self, rpm: NDArray[np.float64]) -> Tuple[Vec3, Vec3]:
         """Return (linear_acc_world, angular_acc_body) at current state for rpm."""
         thrust, torque = self._compute_thrust_and_torque(rpm)

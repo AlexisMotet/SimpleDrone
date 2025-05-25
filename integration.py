@@ -1,7 +1,5 @@
 def integrate(drone: Drone, rpm: NDArray[np.float64], dt: float, method: str = "rk4") -> DroneState:
     new_state = STEP_METHODS[method](drone, rpm, dt)
-    drone.state = new_state
-    return new_state
 
 STEP_METHODS: Dict[str, Callable[[Drone, NDArray[np.float64], float], DroneState]] = {
     "euler": _euler,
