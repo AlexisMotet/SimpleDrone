@@ -6,13 +6,7 @@ from typing import List, Tuple, Dict, Any, Optional
 
 import numpy as np
 from data_classes import DroneState
-
-# from quaternions import (
-#     quat_multiply,
-#     quat_normalise,
-#     quat_rotate,
-#     quat_to_euler
-# )
+import quaternions as quat
 
 
 class PID:
@@ -33,7 +27,7 @@ class PID:
 
 class IMU:
     """https://invensense.tdk.com/wp-content/uploads/documentation/DS-000577_ICM-45686.pdf"""
-    def __init__(self, accel_noise_ug_rtHz: float = 70, gyro_noise_mdps_rtHz: float = 3.8, 
+    def __init__(self, accel_noise_ug_rtHz: float = 70.0, gyro_noise_mdps_rtHz: float = 3.8, 
                  bandwidth: float = 100.0, odr: float = 1000.0):
         accel_noise_density = accel_noise_ug_rtHz * 1e-6 * 9.81
         gyro_noise_density = gyro_noise_mdps_rtHz * 1e-3 * np.pi / 180
@@ -59,10 +53,6 @@ class Mahony:
         self.quaternion = np.array([1.0, 0.0, 0.0, 0.0])
         self.integral = np.zeros(3)
 
-    def reset(self):
-        self.quaternion[:] = (1.0, 0.0, 0.0, 0.0)
-        self.integral[:] = 0.0
-
     def update(self, gyro: Tuple[float, float, float], accel: Tuple[float, float, float], dt: float):
         gx, gy, gz = gyro
         ax, ay, az = accel
@@ -72,13 +62,13 @@ class Mahony:
         norm = math.sqrt(ax * ax + ay * ay + az * az)
         if norm < 1e-6:
             # free‑fall – gyro‑only
-            q_dot = 0.5 * quat_multiply(q, np.array([0.0, gx, gy, gz]))
-            self.quaternion = quat_normalise(q + q_dot * dt)
+            q_dot = 0.5 * quat.multiply(q, np.array([0.0, gx, gy, gz]))
+            self.quaternion = quat.normalise(q + q_dot * dt)
             return
         ax, ay, az = ax / norm, ay / norm, az / norm
 
         # Estimated gravity (body frame)
-        vx, vy, vz = quat_rotate(np.array([0.0, 0.0, 1.0]), q)
+        vx, vy, vz = quat.rotate(np.array([0.0, 0.0, 1.0]), q)
 
         # Error – cross product
         error = np.array([
@@ -97,92 +87,64 @@ class Mahony:
         gyro_corr = np.array([gx, gy, gz]) + self.kp * error + self.ki * self._integral
 
         # Integrate quaternion rate
-        q_dot = 0.5 * quat_multiply(q, np.concatenate([[0.0], gyro_corr]))
-        self.quaternion = quat_normalise(q + q_dot * dt)
-        return quat_to_euler(self.quaternion)
+        q_dot = 0.5 * quat.multiply(q, np.concatenate([[0.0], gyro_corr]))
+        self.quaternion = quat.normalise(q + q_dot * dt)
+        return quat.to_euler(self.quaternion)
 
-class FlightController:
-    def __init__(
-        self,
-        DroneParams,
-        angle_pid: Tuple[float, float, float] = (4.0, 0.0, 0.0),
-        rate_pid: Tuple[float, float, float] = (0.15, 0.0, 0.005),
-        max_angle_deg: float = 45.0,
-    ):
-        self.mixer = mixer.astype(float)
-        self.num_motors = mixer.shape[0]
-        assert mixer.shape[1] == 4, "Mixer must be N×4 ([throttle, roll, pitch, yaw])"
-        assert self.num_motors == len(motors), "Mixer rows must match motor count"
+# class FlightController:
+#     def __init__(
+#         self,
+#         DroneParams,
+#         angle_pid: Tuple[float, float, float] = (4.0, 0.0, 0.0),
+#         rate_pid: Tuple[float, float, float] = (0.15, 0.0, 0.005),
+#         max_angle_deg: float = 45.0,
+#     ):
+#         self.mixer = mixer.astype(float)
+#         self.num_motors = mixer.shape[0]
+#         assert mixer.shape[1] == 4, "Mixer must be N×4 ([throttle, roll, pitch, yaw])"
+#         assert self.num_motors == len(motors), "Mixer rows must match motor count"
 
-        self.angle_pids = [PID(*angle_pid) for _ in range(3)]  # roll, pitch, yaw (outer)
-        self.rate_pids  = [PID(*rate_pid)  for _ in range(3)]  # roll, pitch, yaw (inner)
-        self.max_angle_rad = math.radians(max_angle_deg)
+#         self.angle_pids = [PID(*angle_pid) for _ in range(3)]  # roll, pitch, yaw (outer)
+#         self.rate_pids  = [PID(*rate_pid)  for _ in range(3)]  # roll, pitch, yaw (inner)
+#         self.max_angle_rad = math.radians(max_angle_deg)
 
-        self.attitude_filter = Mahony()
-        self.imu = IMU()
+#         self.attitude_filter = Mahony()
+#         self.imu = IMU()
 
-    def update(self, dt, drone_state: DroneState, rc_cmd: Tuple[float, float, float, float],
-        dt: float) -> np.ndarray:
-        accel, gyro = self.imu.read(drone_state, dt)
-        roll, pitch, yaw = self.attitude_filter.update(accel, gyro, dt)
-        desired_roll = rc_cmd[0] * self.max_angle_rad
-        desired_pitch = rc_cmd[1] * self.max_angle_rad
-        desired_yaw  = 0.0
-        desired_angles = (desired_roll, desired_pitch, desired_yaw)
+#     def update(self, dt, drone_state: DroneState, rc_cmd: Tuple[float, float, float, float],
+#         dt: float) -> np.ndarray:
+#         accel, gyro = self.imu.read(drone_state, dt)
+#         roll, pitch, yaw = self.attitude_filter.update(accel, gyro, dt)
+#         desired_roll = rc_cmd[0] * self.max_angle_rad
+#         desired_pitch = rc_cmd[1] * self.max_angle_rad
+#         desired_yaw  = 0.0
+#         desired_angles = (desired_roll, desired_pitch, desired_yaw)
 
-        rate_set = np.array([self.angle_pids[i].update(desired_angles[i] - ang, dt)
-            for i, ang in enumerate((roll, pitch, yaw))
-        ])
+#         rate_set = np.array([self.angle_pids[i].update(desired_angles[i] - ang, dt)
+#             for i, ang in enumerate((roll, pitch, yaw))
+#         ])
 
-        rate_set[2] += rc_cmd[2]  # yaw stick is rate command directly
+#         rate_set[2] += rc_cmd[2]  # yaw stick is rate command directly
 
-        rate_error = rate_set - np.array(gyro)
-        torque_cmd = np.array([
-            self.rate_pids[i].update(rate_error[i], dt)
-            for i in range(3)
-        ])  # roll, pitch, yaw torque demands (‑1…+1 roughly)
+#         rate_error = rate_set - np.array(gyro)
+#         torque_cmd = np.array([
+#             self.rate_pids[i].update(rate_error[i], dt)
+#             for i in range(3)
+#         ])  # roll, pitch, yaw torque demands (‑1…+1 roughly)
 
-        thrust_cmd = np.clip(rc_cmd[3], 0.0, 1.0)
+#         thrust_cmd = np.clip(rc_cmd[3], 0.0, 1.0)
 
-        # Mixer: motor_cmd = M · [thrust, roll, pitch, yaw]^T
-        mix_input = np.concatenate([[thrust_cmd], torque_cmd])
-        motor_throttle = self.mixer @ mix_input
-        motor_throttle = np.clip(motor_throttle, 0.0, 1.0)
+#         # Mixer: motor_cmd = M · [thrust, roll, pitch, yaw]^T
+#         mix_input = np.concatenate([[thrust_cmd], torque_cmd])
+#         motor_throttle = self.mixer @ mix_input
+#         motor_throttle = np.clip(motor_throttle, 0.0, 1.0)
 
-        pack_voltage = self.battery.voltage
-        rpm = np.array([
-            motor.rpm_from_throttle(motor_throttle[i], pack_voltage)
-            for i, motor in enumerate(self.motors)
-        ])
-        return rpm
-
-    @classmethod
-    def from_yaml(cls, path: str) -> "FlightController":
-        if yaml is None:
-            raise RuntimeError("pyyaml not installed; cannot load YAML config")
-        with open(path, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
-
-        battery = LiPoBattery.from_cfg(cfg["battery"])
-
-        motor_cfg = cfg["motors"].copy()
-        motor_proto, count = Motor.from_cfg(motor_cfg)
-        motors = [motor_proto for _ in range(count)]
-
-        mixer = np.asarray(cfg["mixer"], dtype=float)
-        angle_pid = tuple(cfg.get("pid", {}).get("angle", {}).values()) or (4.0, 0.0, 0.0)
-        rate_pid  = tuple(cfg.get("pid", {}).get("rate", {}).values()) or (0.15, 0.0, 0.005)
-        max_angle = cfg.get("max_angle_deg", 45.0)
-
-        return cls(
-            mixer=mixer,
-            motors=motors,
-            battery=battery,
-            angle_pid=angle_pid,
-            rate_pid=rate_pid,
-            max_angle_deg=max_angle,
-        )
-
+#         pack_voltage = self.battery.voltage
+#         rpm = np.array([
+#             motor.rpm_from_throttle(motor_throttle[i], pack_voltage)
+#             for i, motor in enumerate(self.motors)
+#         ])
+#         return rpm
 
 if __name__ == "__main__":
     pass
