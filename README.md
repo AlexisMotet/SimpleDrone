@@ -5,7 +5,7 @@ while True:
 
     for drone in drones:
 
-        rc_inputs = drone.controller.read_inputs() # renvoie les commandes du radio controller
+        rc_inputs = drone.controller.read_inputs(drone.state, drone.params) # renvoie les commandes du radio controller
 
         rpm, realtime_dt = drone.flight_controler.update(rc_inputs) # renvoie les vitesses de rotation des moteurs
 
@@ -13,8 +13,28 @@ while True:
 
     render(drones)
 ```
+# Controller
 
-# render
+Un clavier, une manette Xbox, un véritable RC, ou un algorithme.
+Prend en entrée l'état dynamique du drone, le modèle du drone et ses paramètres, renvoie quatre commandes:
+- Une poussée (throttle, entre 0 et 1)
+- Une commande de roll
+- Une commande de pitch
+- Une commande de yaw rate
+
+# Flight Controller
+
+Logiciel embarqué qui convertit la commande de l'utilisateur en vitesse de rotation des moteurs.
+Peut être simulé en Python.
+
+Prend en entrée les quatre commandes, l'état actuel du drone, etc.
+Renvoie des vitesses de rotation par moteur et le temps qu'il lui a fallu pour calculer ces vitesses (fréquence d'update du FC)
+
+# Integration
+
+Combine l'état précédent du drone et les vitesses de rotation des moteurs pour obtenir le nouvel état après dt.
+
+# Rendering
 
 Affiche les drones avec Panda3D.
 
@@ -38,6 +58,22 @@ Des structures "Drone" qui contiennent:
 ## notes
 
 - render et le reste du code doivent être indépendants
+
+# TODO
+
+## 1ère étape
+- Implémenter des controllers: clavier, xbox etc.
+- Tester/améliorer le flight controller en Python
+- Faire une GUI avec matplotlib pour régler les PIDs d'un drone (comme Betaflight configurator)
+- Implémenter le rendering
+
+## 2ème étape
+- Tester plusieurs drones (multithreading? python 3.13?)
+- Intégrer un vrai flight controller comme Betaflight SITL
+- Ajouter un capteur caméra, obtenir le flux vidéo avec pandas3d
+
+## 3ème étape
+- Tester le simulateur face à des essais dans la vraie vie, en loggant les commandes, quantifier l'erreur de la trajectoire obtenue
 
 
 
