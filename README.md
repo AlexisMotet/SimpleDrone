@@ -1,3 +1,12 @@
+# TODO
+
+- ~~Implémenter un controller à partir du clavier~~
+- Implémenter un IMU réaliste (biais à ajouter)
+- Implémenter un EKF pour filtrer les sorties de l'IMU
+- Créer une structure de données DroneParams qui puisse renvoyer la matrice "mixer"
+- Tester le flight controller
+
+
 # Boucle de simulation
 
 ```python
@@ -59,21 +68,7 @@ Des structures "Drone" qui contiennent:
 
 - render et le reste du code doivent être indépendants
 
-# TODO
 
-## 1ère étape
-- Implémenter des controllers: clavier, xbox etc.
-- Tester/améliorer le flight controller en Python
-- Faire une GUI avec matplotlib pour régler les PIDs d'un drone (comme Betaflight configurator)
-- Implémenter le rendering
-
-## 2ème étape
-- Tester plusieurs drones (multithreading? python 3.13?)
-- Intégrer un vrai flight controller comme Betaflight SITL
-- Ajouter un capteur caméra, obtenir le flux vidéo avec pandas3d
-
-## 3ème étape
-- Tester le simulateur face à des essais dans la vraie vie, en loggant les commandes, quantifier l'erreur de la trajectoire obtenue
 
 
 

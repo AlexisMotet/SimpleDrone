@@ -8,9 +8,13 @@ class DroneCommands:
 
     pitch: float = 0.0
     roll: float = 0.0
-    yaw: float = 0.0
+    yaw_rate: float = 0.0
     throttle: float = 0.0
 
+@dataclass
+class DroneConfig:
+    arm_length: float
+    geometry: str
 
 from numpy.typing import NDArray
 
@@ -26,3 +30,4 @@ class DroneState:
     acceleration: Vec3
     orientation: NDArray[np.float64]  # quaternion w, x, y, z body -> world
     angular_vel: Vec3  # rad/s, body frame
+

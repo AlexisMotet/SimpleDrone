@@ -14,7 +14,7 @@ class KeyboardController:
         self.roll_linear = 0.0  # -1...1
         self.yaw_linear = 0.0  # -1...1
         self.throttle_linear = 0.0  # 0...1
-        self.last_read_date = time.monotonic_ns()
+        self.last_read = time.monotonic_ns()
 
     def get_commands(self) -> DroneCommands:
         dt = self._update_time()
@@ -24,8 +24,6 @@ class KeyboardController:
         pitch_shaped = KeyboardController._apply_exponential_shape(self.pitch_linear)
         roll_shaped = KeyboardController._apply_exponential_shape(self.roll_linear)
         yaw_shaped = KeyboardController._apply_exponential_shape(self.yaw_linear)
-        if pitch_shaped != 0.0:
-            print(pitch_shaped)
         return DroneCommands(pitch_shaped, roll_shaped, yaw_shaped, self.throttle_linear)
 
     @staticmethod
@@ -34,14 +32,15 @@ class KeyboardController:
         import numpy as np
 
         x = np.linspace(-1.0, 1.0, 1000)
-        y = KeyboardController._apply_expo_shape(x)
+        y = KeyboardController._apply_exponential_shape(x)
         plt.plot(x, y)
+        plt.title("Exponential shaping of the commands")
         plt.show()
 
     def _update_time(self):
         now = time.monotonic_ns()
-        dt = (now - self.last_read_date) / 1e9
-        self.last_read_date = now
+        dt = (now - self.last_read) / 1e9
+        self.last_read = now
         return dt
 
     def _update_axes(self, keys, dt):
@@ -71,7 +70,6 @@ class KeyboardController:
         return (1 - KeyboardController.EXPO) * value + KeyboardController.EXPO * value**3
 
     def _setup_keys(self, keyboard_layout):
-        print(keyboard_layout)
         if keyboard_layout == "qwerty":
             self.PITCH_POS = pygame.K_s
             self.PITCH_NEG = pygame.K_w
@@ -91,7 +89,7 @@ class KeyboardController:
             self.THROTTLE_POS = pygame.K_UP
             self.THROTTLE_NEG = pygame.K_DOWN
         else:
-            raise ValueError(f"Unsupported layout: {keyboard_layout}")
+            raise ValueError(f"Unsupported keyboard layout: {keyboard_layout}")
 
 
 if __name__ == "__main__":
@@ -105,11 +103,13 @@ if __name__ == "__main__":
     font = pygame.font.SysFont(None, 24)
     clock = pygame.time.Clock()
 
-    rc = KeyboardController()
+    rc = KeyboardController(keyboard_layout="azerty")
+
+    rc.plot_exponential_shape()
 
     running = True
     while running:
-        dt = clock.tick(FPS) / 1000.0
+        dt = clock.tick(FPS) / 1000.0 # tick is in ms, dt is in s
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
