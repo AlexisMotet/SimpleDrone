@@ -1,6 +1,9 @@
 import numpy as np
 from simpledrone.utils import constants
 
+# https://invensense.tdk.com/wp-content/uploads/documentation/DS-000577_ICM-45686.pdf
+
+
 class IMU:
     GRAVITY_VECTOR = np.array([0, 0, -constants.GRAVITY])
 
@@ -17,8 +20,6 @@ class IMU:
         self.accel_meas = np.zeros(3)
         self.gyro_meas = np.zeros(3)
 
-        
-
     def read(self, timestamp: float, R_world_to_body, accel_world, angular_vel):
         dt = timestamp - self.last_read_timestamp
         if dt < self.sample_period:
@@ -30,11 +31,11 @@ class IMU:
         self.accel_meas = specific_force_body + np.random.normal(0.0, self.accel_std, 3)
         self.gyro_meas = angular_vel + np.random.normal(0.0, self.gyro_std, 3)
         return self.accel_meas, self.gyro_meas
-    
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+
     imu = IMU()
     t = 0.0
     gyro_output = []
