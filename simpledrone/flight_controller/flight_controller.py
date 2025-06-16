@@ -33,7 +33,7 @@ class FlightController:
 
         self.last_t = 0.0
 
-    def compute_torques(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> np.ndarray:
+    def compute_torque_cmd(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> np.ndarray:
         dt = t - self.last_t
         self.last_t = t
 

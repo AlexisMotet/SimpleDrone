@@ -4,18 +4,15 @@ from simpledrone.panda3d_gui import Panda3D_GUI
 from drone import Drone
 from simpledrone.radio_command.keyboard import Keyboard
 from simpledrone.radio_receiver.elrs_receiver import ExpressLRSReceiver
-from simpledrone.flight_controller.basic_fc import BasicFC
 from simpledrone.imu.basic_imu import BasicIMU
 from simpledrone.attitude_filter.ahrs_ekf import AHRS_EKF
-from simpledrone.esc.basic_esc import BasicESC
-from simpledrone.motors.basic_motors import BasicMotors
 from simpledrone.integrator.euler_integrator import EulerIntegrator
 from simpledrone.flight_controller.flight_controller import FlightController
 from simpledrone.motor_model.basic_motor_model import BasicMotorModel
 
-from simpledrone.data import DroneConfig
+from simpledrone.data import DroneConfig, Geometry
 
-drone0 = Drone(geometry="quadx", arm_length=0.2, torque2thrust_coef=1.0, 
+drone0 = Drone(geometry=Geometry(frame="4x", arm_length=0.1), torque2thrust_coef=1.0, 
                radio_command=Keyboard(), radio_receiver=ExpressLRSReceiver(), 
                imu=BasicIMU(), attitude_filter=AHRS_EKF(),
                flight_controller=FlightController(), motor_model=BasicMotorModel())
@@ -35,7 +32,7 @@ for drone in drones:
             gui.register_action_on_key_pressed(key, action)
 
 from simpledrone.events import EventQueue
-from simpledrone.drone_tasks import ReceiveRCInputs, EstimateAttitude, UpdateMotorSpeed
+from simpledrone.drone_tasks import ReceiveRCInputs, EstimateAttitude, UpdateMotorSpeeds
 
 simulation_queue = EventQueue()
 
@@ -46,7 +43,6 @@ for drone in drones:
 
 while not simulation_queue.empty():
     event = simulation_queue.pop()
-    print(event.t)
     if event.t > 10.0:
         break
     event.execute()

@@ -49,16 +49,18 @@ class UpdateMotorSpeeds(Task):
         return self.next_t
 
     def execute(self, t):
-        thrust = self.drone.motor_model.compute_thrust(self.drone.rc_inputs.throttle)
+        thrust_cmd = self.drone.mixer.get_num_motors() * self.drone.motor_model.compute_thrust(self.drone.rc_inputs.throttle)
         
-        torques = self.drone.flight_controller.compute_torques(t, self.drone.rc_inputs, self.drone.state.orient_quat, self.drone.state.ang_vel)
+        torque_cmd = self.drone.flight_controller.compute_torque_cmd(t, self.drone.rc_inputs, self.drone.state.orient_quat, self.drone.state.ang_vel)
 
-        motors_throttles = self.drone.mixer.mix(thrust, torques)
+        motors_throttles = self.drone.mixer.mix(thrust_cmd, torque_cmd)
 
-        print(motors_throttles.shape)
+        motors_rpm = []
+        for throttle in motors_throttles:
+            motors_rpm.append(self.drone.motor_model.compute_rpm(throttle))
 
-        # self.drone.esc.update_motors_speeds(motors_throttles)
+        # Now i need to integrate
 
-        # self.drone.state.motors_speeds = self.drone.motor_model.compute_motor_speeds(motors_throttle)
 
-        self.next_t = t + 1.0 / 100.0
+
+        self.next_t = t + 1.0 / 1000.0#

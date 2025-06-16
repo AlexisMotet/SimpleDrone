@@ -10,23 +10,16 @@ class DroneConfig:
     torque2thrust_coef: float
 
 @dataclass
+class Geometry:
+    frame: str
+    arm_length: float
+
+@dataclass
 class RCInputs:
     throttle: float = 0.0
     pitch: float = 0.0
     roll: float = 0.0
     yaw_rate: float = 0.0
-
-@dataclass
-class PulseWidthModulation:
-    values: List[float]
-
-@dataclass
-class ESCOutput:
-    values: List[float]
-
-@dataclass
-class RevolutionsPerMinute:
-    values: List[float]
 
 @dataclass
 class DroneState:
