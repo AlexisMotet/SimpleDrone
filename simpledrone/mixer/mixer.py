@@ -1,40 +1,40 @@
 import numpy as np
-from typing import List
-from simpledrone.data import Geometry
+from typing import Tuple, List
+from simpledrone.frame import Frame
+
+
+# Convert global thrust and torque to local motor throttles
+# https://cookierobotics.com/066/
 
 class Mixer:
-    def __init__(self, geometry: Geometry, torque2thrust_coef: float):
-        self.Mp, _ = Mixer.compute_mixer_matrix(geometry, torque2thrust_coef)
+    def __init__(self, frame: Frame):
+        self.M = Mixer._compute_mixer_matrix(frame)
 
-    def get_num_motors(self):
-        return self.Mp.shape[1]
-
-    def mix(self, thrust_cmd: np.ndarray, torque_cmd: np.ndarray) -> np.ndarray:
-        mix_input = np.concatenate([[thrust_cmd], torque_cmd])
-        throttles = self.Mp @ mix_input
+    def mix(self, thrust_cmd: float, torque_cmd: Tuple[float], torque_coefs: List[float]) -> List[float]:
+        M_with_torque_coefs = self.M.copy()
+        M_with_torque_coefs[3, :] *= torque_coefs
+        Mp = np.linalg.pinv(M_with_torque_coefs)
+        wrench = np.array((thrust_cmd,) + torque_cmd)
+        throttles = Mp @ wrench
         throttles = np.clip(throttles, 0.0, 1.0)
-        return throttles
+        return throttles.tolist()
+    
+    def unmix(self, motor_thrusts: List[float], torque_coefs: List[float]) -> Tuple[float, Tuple[float]]:
+        M_with_torque_coefs = self.M.copy()
+        M_with_torque_coefs[3, :] *= torque_coefs
+        wrench = M_with_torque_coefs @ np.asarray(motor_thrusts)
+        return (wrench[0], wrench[1:].tolist())
     
     @staticmethod
-    def compute_mixer_matrix(geometry: Geometry, torque2thrust_coef: float):
-        if geometry.frame == "4+":
-            angles = [0, 90, 180, 270]
-            spin = [1, -1, 1, -1]
-        elif geometry.frame == "4x":
-            angles = [45, 135, 225, 315]
-            spin = [1, -1, 1, -1]
-        elif geometry.frame == "6x":
-            angles = [30, 90, 150, 210, 270, 330]
-            spin = [1, -1, 1, -1, 1, -1]
-        else:
-            raise ValueError(f"unsupported frame \"{geometry.frame}\"")
-        x = geometry.arm_length * np.cos(np.deg2rad(angles))
-        y = geometry.arm_length * np.sin(np.deg2rad(angles))
-        N = len(angles)
+    def _compute_mixer_matrix(frame: Frame):
+        motor_positions = frame.get_motor_positions()
+        motor_spins = frame.get_motor_spins()
+        x = np.array([pos[0] for pos in motor_positions])
+        y = np.array([pos[1] for pos in motor_positions])
+        N = len(motor_positions)
         M = np.zeros((4, N))
         M[0, :] = 1.0
         M[1, :] = -y
         M[2, :] = x
-        M[3, :] = np.array(spin) * torque2thrust_coef
-        Mp = np.linalg.pinv(M)
-        return Mp, M
+        M[3, :] = np.array(motor_spins)
+        return M

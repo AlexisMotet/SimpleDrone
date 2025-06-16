@@ -2,51 +2,64 @@ import time
 
 from simpledrone.panda3d_gui import Panda3D_GUI
 from drone import Drone
-from simpledrone.radio_command.keyboard import Keyboard
+from simpledrone.radio_command.keyboard_rc import KeyboardRC
 from simpledrone.radio_receiver.elrs_receiver import ExpressLRSReceiver
 from simpledrone.imu.basic_imu import BasicIMU
 from simpledrone.attitude_filter.ahrs_ekf import AHRS_EKF
 from simpledrone.integrator.euler_integrator import EulerIntegrator
 from simpledrone.flight_controller.flight_controller import FlightController
-from simpledrone.motor_model.basic_motor_model import BasicMotorModel
+from simpledrone.esc_motor_prop.esc_motor_prop import ESCMotorProp
+from simpledrone.integrator.euler_integrator import EulerIntegrator
 
-from simpledrone.data import DroneConfig, Geometry
+from simpledrone.frame import FPV4XSymmetric
 
-drone0 = Drone(geometry=Geometry(frame="4x", arm_length=0.1), torque2thrust_coef=1.0, 
-               radio_command=Keyboard(), radio_receiver=ExpressLRSReceiver(), 
-               imu=BasicIMU(), attitude_filter=AHRS_EKF(),
-               flight_controller=FlightController(), motor_model=BasicMotorModel())
+drone0 = Drone(frame=FPV4XSymmetric(), radio_command=KeyboardRC(), radio_receiver=ExpressLRSReceiver(), 
+               imu=BasicIMU(), attitude_filter=AHRS_EKF(), flight_controller=FlightController(), 
+               esc_motor_prop=ESCMotorProp(), integrator=EulerIntegrator())
 
 drones = [drone0]
 
 gui = Panda3D_GUI()
 
-integrator = EulerIntegrator()
-
 gui.add_entity("drone0", "models/box", drone0.state.pos.tolist())
 
+
 for drone in drones:
-    if isinstance(drone.radio_command, Keyboard):
-        key_action_dict = drone.radio_command.get_key_action_dict()
-        for key, action in key_action_dict.items():
-            gui.register_action_on_key_pressed(key, action)
+    if isinstance(drone.radio_command, KeyboardRC):
+        gui.register_keys(drone.radio_command.get_keys_pressed())
 
 from simpledrone.events import EventQueue
-from simpledrone.drone_tasks import ReceiveRCInputs, EstimateAttitude, UpdateMotorSpeeds
+from simpledrone.drone_tasks import ReceiveRCInputs, EstimateAttitude, CommandMotorSpeeds
 
 simulation_queue = EventQueue()
 
 for drone in drones:
     simulation_queue.add_task(ReceiveRCInputs(drone))
-    simulation_queue.add_task(EstimateAttitude(drone))
-    simulation_queue.add_task(UpdateMotorSpeeds(drone))
+    simulation_queue.add_task(EstimateAttitude(drone, frequency=100.0))
+    simulation_queue.add_task(CommandMotorSpeeds(drone))
+
+start = time.monotonic()
 
 while not simulation_queue.empty():
     event = simulation_queue.pop()
     if event.t > 10.0:
         break
     event.execute()
-    gui.step()
+
+    real_elapsed_time = time.monotonic() - start
+
+    print(event.t, real_elapsed_time)
+
+    time_to_sleep = event.t - real_elapsed_time
+    if time_to_sleep < 0.0:
+        print("!!!!!!!!")
+    else:
+        while time.monotonic() - start < event.t:
+            pass
+    
+
+    
+    # gui.step()
 
 # simulation_time = 0.0
 

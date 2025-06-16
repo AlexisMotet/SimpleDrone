@@ -1,5 +1,6 @@
 import numpy as np
 from ahrs.filters import EKF
+from simpledrone.maths import quaternions
 
 class AHRS_EKF:
     def __init__(self):

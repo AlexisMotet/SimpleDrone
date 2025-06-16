@@ -16,6 +16,11 @@ class Panda3D_GUI(ShowBase):
 
         self.entities = {}
 
+    def register_keys(self, keys_pressed: dict[str, int]):
+        for key in keys_pressed.keys():
+            self.accept(key, lambda k=key: keys_pressed.__setitem__(k, 1), [])
+            self.accept(f"{key}-up", lambda k=key: keys_pressed.__setitem__(k, 0), [])
+
     def register_action_on_key_pressed(self, key, action, autorepeat=True):
         keyboard_map = base.win.get_keyboard_map()
         local_key = str(keyboard_map.get_mapped_button(key))

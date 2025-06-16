@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 from simpledrone.data import RCInputs
 from simpledrone.maths import quaternions
@@ -19,7 +20,9 @@ class PID:
         return self.kp * error + self.ki * self.integral + self.kd * derivative
 
 class FlightController:
-    def __init__(self, angle_pid=(4.0, 0.0, 0.0), rate_pid=(0.15, 0.0, 0.005), max_angle_deg=45.0, max_yaw_rate_deg=200.0):
+    def __init__(self, angle_pid: Tuple[float] = (4.0, 0.0, 0.0), rate_pid: Tuple[float] = (0.15, 0.0, 0.005), 
+                 max_angle: int = 45, max_yaw_rate: int = 200):
+        
         self.roll_pid = PID(*angle_pid)
         self.pitch_pid = PID(*angle_pid)
         self.yaw_pid = PID(*angle_pid)
@@ -28,14 +31,14 @@ class FlightController:
         self.q_pid = PID(*rate_pid)
         self.r_pid = PID(*rate_pid)
 
-        self.max_angle = np.deg2rad(max_angle_deg)
-        self.max_yaw_rate = np.deg2rad(max_yaw_rate_deg)
+        self.max_angle = np.deg2rad(max_angle)
+        self.max_yaw_rate = np.deg2rad(max_yaw_rate)
 
-        self.last_t = 0.0
+        self.prev_t = 0.0
 
-    def compute_torque_cmd(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> np.ndarray:
-        dt = t - self.last_t
-        self.last_t = t
+    def compute_torque_cmd(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> Tuple[float]:
+        dt = t - self.prev_t
+        self.prev_t = t
 
         roll_desired = rc_inputs.roll * self.max_angle
         pitch_desired = rc_inputs.pitch * self.max_angle
@@ -55,4 +58,4 @@ class FlightController:
         torque_y = self.q_pid.update(pitch_rate_desired - q, dt)
         torque_z = self.r_pid.update(yaw_rate_desired - r, dt)
 
-        return np.array([torque_x, torque_y, torque_z])
+        return (torque_x, torque_y, torque_z)

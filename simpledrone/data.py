@@ -1,18 +1,15 @@
 import numpy as np
 from dataclasses import dataclass, field
 from typing import List
-from numpy.typing import NDArray
+
+def default_ndarray(l: List, dtype):
+    return field(default_factory=lambda: np.array(l, dtype=dtype))
 
 @dataclass
-class DroneConfig:
-    geometry: str
-    arm_length: float
-    torque2thrust_coef: float
-
-@dataclass
-class Geometry:
-    frame: str
-    arm_length: float
+class Inertia:
+    mass: float
+    matrix: np.ndarray
+    inv_matrix: np.ndarray
 
 @dataclass
 class RCInputs:
@@ -22,9 +19,21 @@ class RCInputs:
     yaw_rate: float = 0.0
 
 @dataclass
-class DroneState:
-    pos: NDArray[np.float64] = field(default_factory=lambda: np.array([0.0, 0.0, 0.0], dtype=np.float64))
-    vel: NDArray[np.float64] = field(default_factory=lambda: np.array([0.0, 0.0, 0.0], dtype=np.float64))
-    accel: NDArray[np.float64] = field(default_factory=lambda: np.array([0.0, 0.0, 0.0], dtype=np.float64))
-    orient_quat: NDArray[np.float64] = field(default_factory=lambda: np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64))
-    ang_vel: NDArray[np.float64] = field(default_factory=lambda: np.array([0.0, 0.0, 0.0], dtype=np.float64))
+class State:
+    pos: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
+    vel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
+    accel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
+    orient_quat: np.ndarray = default_ndarray([1.0, 0.0, 0.0, 0.0], np.float64)
+    ang_vel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
+
+
+@dataclass(init=False)
+class MotorsRPM:
+    start_date: float
+    start: List[float]
+    cmd: List[float]
+
+    def __init__(self, num_motors):
+        self.start_date = 0.0
+        self.start = [0.0] * num_motors
+        self.cmd = [0.0] * num_motors
