@@ -1,5 +1,5 @@
 """
-https://cookierobotics.com/066/
+From: https://cookierobotics.com/066/
 
 axis convention:
 
@@ -12,7 +12,7 @@ axis convention:
 """
 
 import numpy as np
-from simpledrone.transferdata import DroneConfig
+from simpledrone.data import DroneConfig
 
 def compute_mixer_matrix(cfg: DroneConfig):
     if cfg.geometry == "quad+":
@@ -21,6 +21,9 @@ def compute_mixer_matrix(cfg: DroneConfig):
     elif cfg.geometry == "quadx":
         angles = [45, 135, 225, 315]
         spin = [1, -1, 1, -1]
+    elif cfg.geometry == "hexax":
+        angles = [30, 90, 150, 210, 270, 330]
+        spin = [1, -1, 1, -1, 1, -1]
     else:
         raise ValueError(f"unsupported geometry '{cfg.geometry}'")
     x = cfg.arm_length * np.cos(np.deg2rad(angles))
@@ -32,7 +35,7 @@ def compute_mixer_matrix(cfg: DroneConfig):
     M[2, :] = x
     M[3, :] = np.array(spin) * cfg.torque2thrust_coef
     Mp = np.linalg.pinv(M)
-    return Mp
+    return Mp, M
 
 if __name__ == "__main__":
     cfg = DroneConfig("quad+", arm_length=1.0, torque2thrust_coef=1.0)

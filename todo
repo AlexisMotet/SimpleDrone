@@ -1,0 +1,59 @@
+ ┌────────────────────────┐
+ │ 1. Pilot / Autopilot   │  <-- high-level set-points
+ │    (cmd_input)         │      (throttle, roll, pitch, yaw-rate, …)
+ └──────────┬─────────────┘
+            │ desired attitude / rates / accel / pos
+ ┌──────────▼─────────────┐
+ │ 2. State Estimator     │  (EKF, complementary, VIO…)
+ │    – fuses IMU + GPS…  │
+ └──────────┬─────────────┘
+            │ estimated attitude q, ω, pos, vel
+ ┌──────────▼─────────────┐
+ │ 3. Flight-Control Law  │  (PID / LQR / geometric ctrl)
+ │    – computes global   │
+ │      wrench            │
+ │      w = [Fz τx τy τz] │ (N, N·m)
+ └──────────┬─────────────┘
+            │ desired body-wrench
+ ┌──────────▼─────────────┐
+ │ 4. Mixer / Allocator   │  (pseudo-inverse, QP, etc.)
+ │    – maps wrench →     │
+ │      per-motor thrusts │ T_i  [N]
+ └──────────┬─────────────┘
+            │ raw thrust per motor
+ ┌──────────▼─────────────┐
+ │ 5. Thrust-to-Throttle   │  (divide by T_MAX, clip, or null-space
+ │    / Saturation        │   redistribution)
+ │    – outputs u_i∈[0,1] │
+ └──────────┬─────────────┘
+            │ throttle command to ESC
+ ┌──────────▼─────────────┐
+ │ 6. ESC Model           │  (PWM → voltage, timing, lag)
+ │    – produces V_i or   │
+ │      RPM_cmd_i         │
+ └──────────┬─────────────┘
+            │ desired voltage / phase drive / RPM_cmd
+ ┌──────────▼─────────────┐
+ │ 7. Motor Dynamics      │  (Kv, R, L, first-order lag)
+ │    – outputs RPM_i     │
+ └──────────┬─────────────┘
+            │ actual rotor speed
+ ┌──────────▼─────────────┐
+ │ 8. Prop Aerodynamics   │  (T=kT n², Q=kQ n²)
+ │    – returns           │
+ │      thrust & torque   │
+ └──────────┬─────────────┘
+            │ forces / moments in body frame
+ ┌──────────▼─────────────┐
+ │ 9. Rigid-Body Physics  │  (integrate 6-DoF + wind, drag)
+ │    – updates true      │
+ │      pos, vel, q, ω    │
+ └──────────┬─────────────┘
+            │ ground-truth state
+ ┌──────────▼─────────────┐
+ │10. Sensor Models       │  (IMU, baro, GPS, camera)
+ │    – add noise, bias   │
+ │      & timing →        │
+ │      synthetic meas.   │
+ └──────────┴─────────────┘
+            ▲ feedback to estimator

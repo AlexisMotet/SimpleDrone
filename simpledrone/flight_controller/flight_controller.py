@@ -1,43 +1,58 @@
 import numpy as np
-from ahrs.filters import EKF
-from pid import PID
-from imu import IMU
-from simpledrone.transferdata import DroneConfig, DroneState, DroneCommands
-from simpledrone.utils import mixer
+from simpledrone.data import RCInputs
+from simpledrone.maths import quaternions
+
+class PID:
+    def __init__(self, kp: float, ki: float, kd: float, integral_limit: float = 1000.0):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.integral_limit = integral_limit
+        self.prev_error = 0.0
+        self.integral = 0.0
+
+    def update(self, error: float, dt: float) -> float:
+        self.integral += error * dt
+        self.integral = min(max(self.integral, self.integral_limit), -self.integral_limit)
+        derivative = (error - self.prev_error) / dt if dt > 0.0 else 0.0
+        self.prev_error = error
+        return self.kp * error + self.ki * self.integral + self.kd * derivative
 
 class FlightController:
-    def __init__(self, cfg: DroneConfig, imu: IMU, angle_pid=(4.0, 0.0, 0.0), rate_pid=(0.15, 0.0, 0.005), max_angle_deg: float = 45.0):
-        self.cfg = cfg
-        self.imu = imu
-        self.mixer = mixer.compute_mixer_matrix(cfg)
-        self.angle_pids = [PID(*angle_pid) for _ in range(3)]
-        self.rate_pids = [PID(*rate_pid) for _ in range(3)]
-        self.max_angle_rad = np.deg2rad(max_angle_deg)
-        self.attitude_filter = EKF()
-
-    def update(self, dt: float, state: DroneState, cmds: DroneCommands) -> np.ndarray:
-        accel, gyro = self.imu.read(state, dt)
-
-        roll, pitch, yaw = self.attitude_filter.update(accel, gyro, dt)
+    def __init__(self, angle_pid=(4.0, 0.0, 0.0), rate_pid=(0.15, 0.0, 0.005), max_angle_deg=45.0, max_yaw_rate_deg=200.0):
+        self.roll_pid = PID(*angle_pid)
+        self.pitch_pid = PID(*angle_pid)
+        self.yaw_pid = PID(*angle_pid)
         
-        desired_pitch = cmds.pitch * self.max_angle_rad
-        desired_roll = cmds.roll * self.max_angle_rad
-        desired_yaw = 0.0
-        desired_angles = (desired_roll, desired_pitch, desired_yaw)
+        self.p_pid = PID(*rate_pid)
+        self.q_pid = PID(*rate_pid)
+        self.r_pid = PID(*rate_pid)
 
-        rate_set = np.array([self.angle_pids[i].update(desired_angles[i] - ang, dt) for i, ang in enumerate((roll, pitch, yaw))])
-        rate_set[2] += cmds[2]  # yaw stick is rate command directly
+        self.max_angle = np.deg2rad(max_angle_deg)
+        self.max_yaw_rate = np.deg2rad(max_yaw_rate_deg)
 
-        rate_error = rate_set - np.array(gyro)
-        torque_cmd = np.array([self.rate_pids[i].update(rate_error[i], dt) for i in range(3)])
+        self.last_t = 0.0
 
-        thrust_cmd = self.motor_model.estimate_thrust(cmds.throttle)
+    def compute_torques(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> np.ndarray:
+        dt = t - self.last_t
+        self.last_t = t
 
-        # Mixer: motor_cmd = M · [thrust, roll, pitch, yaw]^T
-        mix_input = np.concatenate([[thrust_cmd], torque_cmd])
-        motor_throttle = self.mixer @ mix_input
-        motor_throttle = np.clip(motor_throttle, 0.0, 1.0)
+        roll_desired = rc_inputs.roll * self.max_angle
+        pitch_desired = rc_inputs.pitch * self.max_angle
+        yaw_desired = 0.0
 
-        pack_voltage = self.battery.voltage
-        rpm = np.array([motor.rpm_from_throttle(motor_throttle[i], pack_voltage) for i, motor in enumerate(self.motors)])
-        return rpm
+        roll, pitch, yaw = quaternions.to_euler_angles(orient_quat)
+
+        roll_rate_desired = self.roll_pid.update(roll_desired - roll, dt)
+        pitch_rate_desired = self.pitch_pid.update(pitch_desired - pitch, dt)
+        yaw_rate_desired = self.yaw_pid.update(yaw_desired - yaw, dt)
+
+        yaw_rate_desired += rc_inputs.yaw_rate * self.max_yaw_rate
+
+        p, q, r = gyro_output
+
+        torque_x = self.p_pid.update(roll_rate_desired - p, dt)
+        torque_y = self.q_pid.update(pitch_rate_desired - q, dt)
+        torque_z = self.r_pid.update(yaw_rate_desired - r, dt)
+
+        return np.array([torque_x, torque_y, torque_z])

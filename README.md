@@ -1,10 +1,18 @@
 # TODO
 
 - ~~Implémenter un controller à partir du clavier~~
-- Implémenter un IMU réaliste (biais à ajouter)
-- Implémenter un EKF pour filtrer les sorties de l'IMU
-- Créer une structure de données DroneParams qui puisse renvoyer la matrice "mixer"
+- Implémenter un IMU réaliste: biais à ajouter https://github.com/Aceinna/gnss-ins-sim, comparer à des vraies données
+- Tester sur un banked turn
+- ~~Implémenter un EKF pour filtrer les sorties de l'IMU~~ (AHRS lib)
+- Implémenter son propre EKF ?
+
+
+- ~~Créer une structure de données DroneParams qui puisse renvoyer la matrice "mixer"~~
+- Implémenter un modèle de moteur
 - Tester le flight controller
+
+
+
 
 
 # Boucle de simulation
@@ -67,10 +75,3 @@ Des structures "Drone" qui contiennent:
 ## notes
 
 - render et le reste du code doivent être indépendants
-
-
-
-
-
-
-

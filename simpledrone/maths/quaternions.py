@@ -89,3 +89,20 @@ def to_euler_angles(q: NDArray[np.floating]) -> tuple[float, float, float]:
     pitch = np.arcsin(np.clip(sinp, -1.0, 1.0))
     yaw = np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
     return roll, pitch, yaw
+
+
+def from_euler_angles(roll: float, pitch: float, yaw: float) -> NDArray[np.floating]:
+    """Convert roll, pitch, yaw (rad) → quaternion [w, x, y, z]"""
+    cr = np.cos(roll * 0.5)
+    sr = np.sin(roll * 0.5)
+    cp = np.cos(pitch * 0.5)
+    sp = np.sin(pitch * 0.5)
+    cy = np.cos(yaw * 0.5)
+    sy = np.sin(yaw * 0.5)
+
+    w = cr * cp * cy + sr * sp * sy
+    x = sr * cp * cy - cr * sp * sy
+    y = cr * sp * cy + sr * cp * sy
+    z = cr * cp * sy - sr * sp * cy
+
+    return normalize(np.array([w, x, y, z]))
