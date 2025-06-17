@@ -40,7 +40,7 @@ class EventQueue:
 
     def _execute_task(self, task: Task):
         t = task.get_next_task_date()
-        print(f"executing {task} @ {t}")
+        # print(f"executing {task} @ {t}")
         task.execute(t)
         heapq.heappush(self.events, Event(task.get_next_task_date(), lambda: self._execute_task(task)))
 

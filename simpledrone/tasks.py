@@ -12,6 +12,7 @@ class ReceiveRCInputs(Task):
 
     def execute(self, t: float):
         raw_cmds = self.drone.radio_command.read_rc_inputs()
+        print(raw_cmds)
 
         self.drone.radio_receiver.receive(t, raw_cmds)
 
@@ -31,7 +32,7 @@ class EstimateAttitude(Task):
         integrate_drone_state(t, self.drone)
 
         s = self.drone.state
-        
+
         accel_minus_gravity, gyro = self.drone.imu.read(t=t, accel_world=s.accel, quat_world_to_body=s.orient_quat, ang_vel_body=s.ang_vel)
 
         accel_std, gyro_std = self.drone.imu.get_std()
@@ -58,6 +59,8 @@ class CommandMotorSpeeds(Task):
         estimated_orient = self.drone.attitude_filter.get_estimated_orientation()
         gyro_output = self.drone.imu.get_gyro()
         torque_cmd = self.drone.flight_controller.compute_torque_cmd(t, rc_inputs, estimated_orient, gyro_output)
+
+        torque_cmd = (0, 0, 0)
 
         current_rpms = self.drone.esc_motor_prop.compute_current_rpms(t - self.drone.motors_rpm.start_date, self.drone.motors_rpm.start, self.drone.motors_rpm.cmd)
         torque_coefs = self.drone.esc_motor_prop.estimate_torque_coefs_from_current_rpms(current_rpms)

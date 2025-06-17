@@ -36,7 +36,7 @@ simulation_queue = EventQueue()
 for drone in drones:
     simulation_queue.add_task(ReceiveRCInputs(drone))
     simulation_queue.add_task(EstimateAttitude(drone, frequency=100.0))
-    # simulation_queue.add_task(CommandMotorSpeeds(drone))
+    simulation_queue.add_task(CommandMotorSpeeds(drone))
 
 start = time.monotonic()
 
@@ -48,16 +48,17 @@ while not simulation_queue.empty():
 
     real_elapsed_time = time.monotonic() - start
 
-    print(event.t, real_elapsed_time)
+    # print(event.t, real_elapsed_time)
 
     time_to_sleep = event.t - real_elapsed_time
     if time_to_sleep < 0.0:
-        print("!!!!!!!!")
+        # print("!!!!!!!!")
+        pass
     else:
         while time.monotonic() - start < event.t:
             pass
     
-    # gui.step()
+    gui.step()
     
 
     
