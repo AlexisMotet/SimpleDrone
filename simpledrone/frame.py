@@ -59,12 +59,14 @@ class FPV4XSymmetric(Frame):
     def get_motor_spins(self) -> Tuple[int]:
         return (1, -1, 1, -1)
     
-    def get_max_torques(self, motor: ESCMotorProp, mixer: Mixer, yaw_diff_ratio: float = 0.3) -> Tuple[float]:
+    # yaw_diff_ratio -> comes from betaflight https://betaflight.com/docs/development/Mixer?utm_source=chatgpt.com
+    def get_max_torques(self, motor: ESCMotorProp, yaw_diff_ratio: float = 0.3) -> Tuple[float]:
         arm_length = float(np.linalg.norm(self.get_motor_positions()[0]))
         max_thrust = motor.estimate_thrust(throttle=1.0)
+        
         max_roll_torque = 2 * arm_length * max_thrust
         max_pitch_torque = max_roll_torque
 
-        max_yaw_torque = yaw_diff_ratio * 4 * motor.estimate_propeller_torque(throttle=0.5)
+        max_yaw_torque = yaw_diff_ratio * 4 * motor.estimate_propeller_torque(throttle=1.0)
         
         return (max_roll_torque, max_pitch_torque, max_yaw_torque)

@@ -41,10 +41,9 @@ class FlightController:
         torque_y = self.q_pid.update(pitch_rate_desired - q, dt)
         torque_z = self.r_pid.update(yaw_rate_desired - r, dt)
 
-        print(max_torques)
         for dim, torque, max_torque in zip(["x", "y", "z"], [torque_x, torque_y, torque_z], max_torques):
             if torque >= max_torque:
-                print(f"torque_{dim} ({torque}) is >= max_torque ({max_torque}), consider changing pid")
+                print(f"torque_{dim} ({torque}) is >= max_torque ({max_torque}), consider changing PID !")
 
         torque_x = min(torque_x, max_torques[0])
         torque_y = min(torque_y, max_torques[1])

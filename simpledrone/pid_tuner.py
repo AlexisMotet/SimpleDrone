@@ -11,7 +11,7 @@ from simpledrone.data import RCInputs
 plt.ion() 
 
 INTEGRATION_TIME = 3.0
-INTEGRATION_STEP = 1e-3
+INTEGRATION_STEP = 1e-4
 
 MAX_ANGLE_DEG = 45.0
 MAX_YAW_RATE_DEG = 200.0
@@ -19,11 +19,11 @@ MAX_YAW_RATE_DEG = 200.0
 AXES = ["roll", "pitch", "p", "q", "r"]
 GAINS = {}
 for axis in ["roll", "pitch"]:
-    GAINS[axis] = {"P": 500.0, "I": 0.0, "D": 50.0}
+    GAINS[axis] = {"P": 1000.0, "I": 0.0, "D": 50.0}
 
 for axis in ["p", "q"]:
     GAINS[axis] = {"P": 0.001, "I": 0.0, "D": 0.0}
-GAINS["r"] = {"P": 0.001, "I": 0.0, "D": 0.0}
+GAINS["r"] = {"P": 0.03, "I": 0.0, "D": 0.0}
 
 COMMANDS = {"roll": 35.0, "pitch": -20.0, "yaw": 100.0}
 LINES = [None, None, None]
@@ -48,7 +48,6 @@ def integrate(frame, motor, rc_inputs, axis) -> Tuple[List[float], List[float]]:
     while time < INTEGRATION_TIME:
         time += INTEGRATION_STEP
         thrust = 0.0
-        print("MAX TORQUE: ", frame.get_max_torques(motor))
         torque = fc.compute_torque_cmd(time, rc_inputs, state.orient_quat, state.ang_vel, max_torques=frame.get_max_torques(motor))
 
         state = integrator.integrate(time, inertia, state, thrust, torque)
@@ -66,9 +65,6 @@ def plot(fig, axes, frame, motor):
     pitch_input = RCInputs(throttle=0.0, roll=0.0, pitch=COMMANDS["pitch"] / MAX_ANGLE_DEG, yaw_rate=0.0)
     yaw_input = RCInputs(throttle=0.0, roll=0.0, pitch=0.0, yaw_rate=COMMANDS["yaw"] / MAX_YAW_RATE_DEG)
     for i, rc_inputs in enumerate([roll_input, pitch_input, yaw_input]):
-
-        if i != 2:
-            continue
 
         cmd = list(COMMANDS.values())[i]
         t, angles = integrate(frame, motor, rc_inputs, i)
@@ -89,11 +85,11 @@ def show_table():
     print("\nPID table:")
     for axis in AXES:
         g = GAINS[axis]
-        print(f"{axis:>5}: P={g['P']:7.3f}  I={g['I']:7.3f}  D={g['D']:7.3f}")
+        print(f"{axis:>5}: P={g['P']:9.3f}  I={g['I']:9.3f}  D={g['D']:9.3f}")
     print()
     print("Commands:")
     for axis, value in COMMANDS.items():
-        print(f"{axis:>5}: {value:7.3f}")
+        print(f"{axis:>5}: {value:9.3f}")
     print()
 
 def pid_tuner(frame, motor):

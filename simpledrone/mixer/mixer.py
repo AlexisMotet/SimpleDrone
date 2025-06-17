@@ -23,7 +23,7 @@ class Mixer:
         M_with_torque_coefs = self.M.copy()
         M_with_torque_coefs[3, :] *= torque_coefs
         wrench = M_with_torque_coefs @ np.asarray(motor_thrusts)
-        return (wrench[0], wrench[1:].tolist())
+        return (float(wrench[0]), (float(torque) for torque in wrench[1:]))
     
     @staticmethod
     def _compute_mixer_matrix(frame: Frame):
