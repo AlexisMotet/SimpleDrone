@@ -3,7 +3,8 @@ import numpy as np
 import math
 
 
-# default is: https://database.tytorobotics.com/tests/xkn6/unmartmoto-as2820-880kv-g-camfold-28x15-11x6-hub45
+# default is: T-Motor F40 PRO II Motor POPO - 2400kv motor
+# https://database.tytorobotics.com/motors/yx5/t-motor-f40-pro-ii-motor-popo-2400kv
 
 class ESCMotorProp:
     MIN_PWM_US = 1000.0
@@ -13,16 +14,16 @@ class ESCMotorProp:
         self,
         pwm_frequency=50.0,
         motor_response_time=100.0,
-        pwms: List[int] = [1000, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800, 1900, 2000],
-        rpms: List[int] = [0, 465, 813, 1148, 1476, 1798, 2107, 2390, 2671, 2983, 3279, 3543, 3818, 4056, 4322, 4550, 5027, 5227],
-        thrusts: List[float] = [0.0001, 0.01, 0.032, 0.0665, 0.1136, 0.1728, 0.2444, 0.3179, 0.4107, 0.527, 0.6194, 0.7339, 0.8289, 0.969, 1.086, 1.244, 1.504, 1.674],
-        torques: List[float] = [0.0001, 0.0036, 0.0111, 0.0212, 0.0337, 0.05, 0.0671, 0.086, 0.1094, 0.1343, 0.1541, 0.1793, 0.202, 0.2356, 0.2618, 0.3029, 0.3625, 0.4061],
+        pwms: List[int] = [1000, 1300, 1325, 1350, 1375, 1400, 1425, 1450, 1475, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
+        rpms: List[int] = [0, 4550, 5138, 5685, 6163, 6569, 6983, 7433, 7868, 8276, 9184, 10042, 10905, 11854, 12654, 13261],
+        thrusts_kgf: List[float] = [0.0002, 0.0429, 0.0544, 0.0669, 0.0788, 0.0898, 0.1022, 0.1167, 0.1317, 0.1457, 0.1804, 0.218, 0.2589, 0.308, 0.3508, 0.3866],
+        torques: List[float] = [0.0001, 0.0055, 0.007, 0.0086, 0.0103, 0.0117, 0.0132, 0.0154, 0.0178, 0.0201, 0.0252, 0.0301, 0.0359, 0.0434, 0.0502, 0.0561],
     ):
         self.pwm_frequency = pwm_frequency
         self.motor_response_time = motor_response_time / 1e3
         self.pwms = pwms
         self.rpms = rpms
-        self.thrusts = thrusts
+        self.thrusts = [thrust * 9.81 for thrust in thrusts_kgf]
         self.torques = torques
        
     def get_pwm_frequency(self) -> float:
@@ -34,18 +35,18 @@ class ESCMotorProp:
         
         pwm = ESCMotorProp._compute_pwm(throttle)
         return float(np.interp(pwm, self.pwms, self.thrusts))
-    
-    def estimate_torque(self, throttle: float) -> float:
+
+    def estimate_propeller_torque(self, throttle: float) -> float:
         if not 0.0 <= throttle <= 1.0:
             raise ValueError()
         
         pwm = ESCMotorProp._compute_pwm(throttle)
         return float(np.interp(pwm, self.pwms, self.torques))
-    
+     
     def estimate_thrust_from_rpm(self, rpm: float) -> float:
         return float(np.interp(rpm, self.rpms, self.thrusts))
     
-    def estimate_torque_from_rpm(self, rpm: float) -> float:
+    def estimate_propeller_torque_from_rpm(self, rpm: float) -> float:
         return float(np.interp(rpm, self.rpms, self.torques))
     
     def estimate_rpm_from_throttle(self, throttle: float) -> float:
@@ -59,9 +60,12 @@ class ESCMotorProp:
     def estimate_torque_coefs_from_current_rpms(self, rpms: List[float]) -> List[float]:
         torque_coefs = []
         for rpm in rpms:
-            torque = self.estimate_thrust_from_rpm(rpm)
-            thrust = self.estimate_torque_from_rpm(rpm)
-            torque_coefs.append(torque / thrust)
+            torque = self.estimate_propeller_torque_from_rpm(rpm)
+            thrust = self.estimate_thrust_from_rpm(rpm)
+            torque_coef = torque / thrust
+            if torque_coef >= 1:
+                raise ValueError("torque/thrust coefficient is not expected to be >= 1")
+            torque_coefs.append(torque_coef)
         return torque_coefs
     
     def compute_current_rpms(self, dt: float, start_rpms: List[float], rpms_cmd: List[float]) -> List[float]:

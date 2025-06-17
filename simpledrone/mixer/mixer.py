@@ -17,7 +17,7 @@ class Mixer:
         wrench = np.array((thrust_cmd,) + torque_cmd)
         throttles = Mp @ wrench
         throttles = np.clip(throttles, 0.0, 1.0)
-        return throttles.tolist()
+        return [float(throttle) for throttle in throttles]
     
     def unmix(self, motor_thrusts: List[float], torque_coefs: List[float]) -> Tuple[float, Tuple[float]]:
         M_with_torque_coefs = self.M.copy()

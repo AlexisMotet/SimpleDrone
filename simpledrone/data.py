@@ -14,8 +14,8 @@ class Inertia:
 @dataclass
 class RCInputs:
     throttle: float = 0.0
-    pitch: float = 0.0
     roll: float = 0.0
+    pitch: float = 0.0
     yaw_rate: float = 0.0
 
 @dataclass

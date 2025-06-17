@@ -14,11 +14,11 @@ class EulerIntegrator:
         assert dt >= 0.0
         self.prev_t = t
 
-        R_world2body = quaternions.to_rotation_matrix(state.orient_quat)
-        R_body2world = R_world2body.T
+        R_world_to_body = quaternions.to_rotation_matrix(state.orient_quat)
+        R_body_to_world = R_world_to_body.T
         
         force_body = np.array([0, 0, -thrust]) # NED convention
-        force_world = R_body2world @ force_body
+        force_world = R_body_to_world @ force_body
         weight = np.array([0.0, 0.0, inertia.mass * 9.81]) # NED
         accel_world = (force_world + weight) / inertia.mass
 
@@ -31,16 +31,10 @@ class EulerIntegrator:
         coriolis = np.cross(state.ang_vel, inertia.matrix @ state.ang_vel)
         ang_acc = inertia.inv_matrix @ (np.asarray(torque) - coriolis)
 
-
         new_state.ang_vel = state.ang_vel + ang_acc * dt
-
-        print("ang vel before, after: ", state.ang_vel, new_state.ang_vel)
 
         q_dot = quaternions.derive(state.orient_quat, new_state.ang_vel)
         
         new_state.orient_quat = quaternions.normalize(state.orient_quat + q_dot * dt)
-
-        print("euler bef, euler aft: ", quaternions.to_euler_angles(state.orient_quat), quaternions.to_euler_angles(new_state.orient_quat))
-
 
         return new_state

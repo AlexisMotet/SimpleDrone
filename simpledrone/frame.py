@@ -1,6 +1,7 @@
 from typing import Tuple
 import numpy as np
 from simpledrone.data import Inertia
+from simpledrone.esc_motor_prop.esc_motor_prop import ESCMotorProp
 
 class Frame:
     def get_inertia(self) -> Inertia:
@@ -11,14 +12,16 @@ class Frame:
     
     def get_motor_spins(self) -> Tuple[int]:
         raise NotImplementedError()
-
+    
+    def get_max_torques(self, motor) -> Tuple[float]:
+        raise NotImplementedError()
 
 class FPV4XSymmetric(Frame):
     def __init__(self, core_width_cm: float = 8.0, core_length_cm: float = 12.0, core_mass_g: float = 250.0, 
                  arm_length_cm: float = 10.0, motor_mass_g: float = 30.0):
         cm = core_mass_g * 0.001
         mm = motor_mass_g * 0.001
-        self.mass = (cm + 4 * mm) * 0.001
+        self.mass = (cm + 4 * mm)
 
         L = (arm_length_cm * 0.01) / np.sqrt(2)
 
@@ -34,7 +37,7 @@ class FPV4XSymmetric(Frame):
 
         Ixx = (1 / 12) * cm * (w**2 + l**2)
         Iyy = (1 / 12) * cm * (2 * (w**2))
-        Izz = (1 / 12) * cm * (w**2 + l**2)
+        Izz = 2 * (1 / 12) * cm * (w**2 + l**2)
 
         self.I = np.diag([Ixx, Iyy, Izz])
 
@@ -55,3 +58,13 @@ class FPV4XSymmetric(Frame):
     
     def get_motor_spins(self) -> Tuple[int]:
         return (1, -1, 1, -1)
+    
+    def get_max_torques(self, motor: ESCMotorProp, mixer: Mixer, yaw_diff_ratio: float = 0.3) -> Tuple[float]:
+        arm_length = float(np.linalg.norm(self.get_motor_positions()[0]))
+        max_thrust = motor.estimate_thrust(throttle=1.0)
+        max_roll_torque = 2 * arm_length * max_thrust
+        max_pitch_torque = max_roll_torque
+
+        max_yaw_torque = yaw_diff_ratio * 4 * motor.estimate_propeller_torque(throttle=0.5)
+        
+        return (max_roll_torque, max_pitch_torque, max_yaw_torque)
