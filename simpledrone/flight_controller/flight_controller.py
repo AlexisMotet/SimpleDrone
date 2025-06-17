@@ -9,18 +9,19 @@ class PID:
         self.ki = ki
         self.kd = kd
         self.integral_limit = integral_limit
-        self.prev_error = 0.0
+        self.prev_error = None
         self.integral = 0.0
 
     def update(self, error: float, dt: float) -> float:
         self.integral += error * dt
-        self.integral = min(max(self.integral, self.integral_limit), -self.integral_limit)
-        derivative = (error - self.prev_error) / dt if dt > 0.0 else 0.0
+        self.integral = min(max(self.integral, -self.integral_limit), self.integral_limit)
+        derivative = (error - self.prev_error) / dt if self.prev_error and dt > 0.0 else 0.0
+        print(derivative, error, self.prev_error, dt)
         self.prev_error = error
         return self.kp * error + self.ki * self.integral + self.kd * derivative
 
 class FlightController:
-    def __init__(self, angle_pid: Tuple[float] = (4.0, 0.0, 0.0), rate_pid: Tuple[float] = (0.15, 0.0, 0.005), 
+    def __init__(self, angle_pid: Tuple[float] = (5.0, 0.0, 1.0), rate_pid: Tuple[float] = (0.001, 0.0, 0.001), 
                  max_angle: int = 45, max_yaw_rate: int = 200):
         
         self.roll_pid = PID(*angle_pid)
@@ -49,7 +50,6 @@ class FlightController:
         roll_rate_desired = self.roll_pid.update(roll_desired - roll, dt)
         pitch_rate_desired = self.pitch_pid.update(pitch_desired - pitch, dt)
         yaw_rate_desired = self.yaw_pid.update(yaw_desired - yaw, dt)
-
         yaw_rate_desired += rc_inputs.yaw_rate * self.max_yaw_rate
 
         p, q, r = gyro_output

@@ -60,8 +60,6 @@ class CommandMotorSpeeds(Task):
         gyro_output = self.drone.imu.get_gyro()
         torque_cmd = self.drone.flight_controller.compute_torque_cmd(t, rc_inputs, estimated_orient, gyro_output)
 
-        torque_cmd = (0, 0, 0)
-
         current_rpms = self.drone.esc_motor_prop.compute_current_rpms(t - self.drone.motors_rpm.start_date, self.drone.motors_rpm.start, self.drone.motors_rpm.cmd)
         torque_coefs = self.drone.esc_motor_prop.estimate_torque_coefs_from_current_rpms(current_rpms)
 

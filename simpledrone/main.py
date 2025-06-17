@@ -13,6 +13,12 @@ from simpledrone.integrator.euler_integrator import EulerIntegrator
 
 from simpledrone.frame import FPV4XSymmetric
 
+from simpledrone.maths import quaternions
+import numpy as np
+
+def ned_to_enu(vec):
+    return (float(vec[1]), float(vec[0]), float(-vec[2]))
+    
 drone0 = Drone(frame=FPV4XSymmetric(), radio_command=KeyboardRC(), radio_receiver=ExpressLRSReceiver(), 
                imu=IMU(), attitude_filter=ahrsEKF(), flight_controller=FlightController(), 
                esc_motor_prop=ESCMotorProp(), integrator=EulerIntegrator())
@@ -58,8 +64,18 @@ while not simulation_queue.empty():
         while time.monotonic() - start < event.t:
             pass
     
+    for drone in drones:
+        gui.move_entity("drone0", ned_to_enu(drone.state.pos))
+
+    R = quaternions.to_rotation_matrix(drone.state.orient_quat)
+
+    forward = R.T @ np.array([1, 0, 0])
+
+    gui.look_at_entity(ned_to_enu(drone.state.pos), ned_to_enu(forward))
+
     gui.step()
-    
+
+
 
     
     # gui.step()

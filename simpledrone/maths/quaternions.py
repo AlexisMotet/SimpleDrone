@@ -88,7 +88,7 @@ def to_euler_angles(q: NDArray[np.floating]) -> tuple[float, float, float]:
     sinp = 2 * (w * y - z * x)
     pitch = np.arcsin(np.clip(sinp, -1.0, 1.0))
     yaw = np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
-    return roll, pitch, yaw
+    return float(roll), float(pitch), float(yaw)
 
 
 def from_euler_angles(roll: float, pitch: float, yaw: float) -> NDArray[np.floating]:

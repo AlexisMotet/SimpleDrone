@@ -20,17 +20,16 @@ class ExpressLRSReceiver:
 
         assert len(self.pending_inputs) == 1 or self.pending_inputs[-2][0] <= self.pending_inputs[-1][0] # always increasing
 
-    def get_rc_inputs(self,rx_time: float) -> RCInputs: 
+    def get_rc_inputs(self, rx_time: float) -> RCInputs: 
         assert rx_time >= self.prev_request_t # always increasing
         self.prev_request_t = rx_time
 
         rc_input = RCInputs()
 
         cutoff_indice = 0
-        
-        for i, (rx_candidate, _) in enumerate(self.pending_inputs):
 
-            if rx_time >= rx_candidate:
+        for i, (rx_t_candidate, _) in enumerate(self.pending_inputs):
+            if rx_time >= rx_t_candidate: # rx_t_candidate is increasing
                 cutoff_indice = min(i + 1, len(self.pending_inputs) - 1)
                 _, rc_input = self.pending_inputs[i]
 

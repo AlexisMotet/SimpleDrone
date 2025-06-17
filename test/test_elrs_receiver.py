@@ -22,7 +22,6 @@ class TestExpressLRSReceiver(unittest.TestCase):
 
         self.assertEqual(len(receiver.pending_inputs), 6)
 
-
         self.assertEqual(receiver.get_rc_inputs(rx_time=0.001), RCInputs()) # rc inputs are poped, only coherent rc inputs will be poped
                                                                             # calls should be done with increasing rx_time !
         self.assertEqual(receiver.get_rc_inputs(rx_time=0.002), RCInputs())

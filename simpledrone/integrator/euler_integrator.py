@@ -31,10 +31,16 @@ class EulerIntegrator:
         coriolis = np.cross(state.ang_vel, inertia.matrix @ state.ang_vel)
         ang_acc = inertia.inv_matrix @ (np.asarray(torque) - coriolis)
 
+
         new_state.ang_vel = state.ang_vel + ang_acc * dt
 
-        q_dot = quaternions.derive(state.orient_quat, state.ang_vel)
+        print("ang vel before, after: ", state.ang_vel, new_state.ang_vel)
+
+        q_dot = quaternions.derive(state.orient_quat, new_state.ang_vel)
         
         new_state.orient_quat = quaternions.normalize(state.orient_quat + q_dot * dt)
+
+        print("euler bef, euler aft: ", quaternions.to_euler_angles(state.orient_quat), quaternions.to_euler_angles(new_state.orient_quat))
+
 
         return new_state
