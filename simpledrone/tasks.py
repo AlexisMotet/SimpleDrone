@@ -30,17 +30,15 @@ class EstimateAttitude(Task):
     def execute(self, t: float):
         integrate_drone_state(t, self.drone)
 
-        accel, gyro = self.drone.imu.read(t=t, accel_world=self.drone.state.accel, quat_world2body=self.drone.state.orient_quat, ang_vel_body=self.drone.state.ang_vel)
+        s = self.drone.state
+        
+        accel_minus_gravity, gyro = self.drone.imu.read(t=t, accel_world=s.accel, quat_world_to_body=s.orient_quat, ang_vel_body=s.ang_vel)
 
-        prior = self.drone.state.orient_quat
-
-        accel_std, gyro_std = self.drone.imu.get_accel_std(), self.drone.imu.get_gyro_std()
-
-        self.drone.state.orient_quat = self.drone.attitude_filter.estimate(t=t, prior=prior, accel=accel, gyro=gyro, accel_std=accel_std, gyro_std=gyro_std)
+        accel_std, gyro_std = self.drone.imu.get_std()
+        self.drone.attitude_filter.estimate(t=t, accel=accel_minus_gravity, gyro=gyro, accel_std=accel_std, gyro_std=gyro_std)
 
         self.next_t = t + 1.0 / self.frequency
 
-        
 
 class CommandMotorSpeeds(Task):
     def __init__(self, drone: Drone, next_t: float = 0.0):
@@ -57,24 +55,21 @@ class CommandMotorSpeeds(Task):
 
         thrust_cmd = self.drone.frame.get_num_motors() * self.drone.esc_motor_prop.estimate_thrust(rc_inputs.throttle)
 
-        torque_cmd = self.drone.flight_controller.compute_torque_cmd(t, rc_inputs, self.drone.state.orient_quat, self.drone.state.ang_vel)
+        estimated_orient = self.drone.attitude_filter.get_estimated_orientation()
+        gyro_output = self.drone.imu.get_gyro()
+        torque_cmd = self.drone.flight_controller.compute_torque_cmd(t, rc_inputs, estimated_orient, gyro_output)
 
         current_rpms = self.drone.esc_motor_prop.compute_current_rpms(t - self.drone.motors_rpm.start_date, self.drone.motors_rpm.start, self.drone.motors_rpm.cmd)
-
         torque_coefs = self.drone.esc_motor_prop.estimate_torque_coefs_from_current_rpms(current_rpms)
 
         self.drone.motors_rpm.start = current_rpms
-
         self.drone.motors_rpm.start_date = t
-
         self.drone.motors_rpm.cmd = []
 
         throttles_cmd = self.drone.mixer.mix(thrust_cmd, torque_cmd, torque_coefs)
 
         for throttle_cmd in throttles_cmd:
-
             rpm_cmd = self.drone.esc_motor_prop.estimate_rpm_from_throttle(throttle_cmd)
-
             self.drone.motors_rpm.cmd.append(rpm_cmd)
 
         self.next_t += 1 / self.drone.esc_motor_prop.get_pwm_frequency()

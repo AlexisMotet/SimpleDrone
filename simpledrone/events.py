@@ -44,22 +44,3 @@ class EventQueue:
         task.execute(t)
         heapq.heappush(self.events, Event(task.get_next_task_date(), lambda: self._execute_task(task)))
 
-    
-
-
-
-# class ReadIMUData(Event):
-#     def __init__(self, t: float, drone: Drone):
-#         super().__init__(t)
-#         self.drone = drone
-
-#     def __call__(self, event_queue):
-#         cmds = self.drone.radio_receiver.receive(self.t, self.raw_cmds)
-#         event_queue.push(ReadIMUData(self.t))
-
-
-
-# def read_radio_commands(t, drone, event_queue):
-#     raw_cmds = drone.radio_command.read_commands(t)
-#     t += drone.radio_receiver.get_transmission_delay()
-#     event_queue.push(Event(t, lambda: ))

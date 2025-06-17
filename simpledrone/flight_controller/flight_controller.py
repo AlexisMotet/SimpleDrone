@@ -36,7 +36,7 @@ class FlightController:
 
         self.prev_t = 0.0
 
-    def compute_torque_cmd(self, t: float, rc_inputs: RCInputs, orient_quat: np.ndarray, gyro_output: np.ndarray) -> Tuple[float]:
+    def compute_torque_cmd(self, t: float, rc_inputs: RCInputs, estimated_orient: np.ndarray, gyro_output: np.ndarray) -> Tuple[float]:
         dt = t - self.prev_t
         self.prev_t = t
 
@@ -44,7 +44,7 @@ class FlightController:
         pitch_desired = rc_inputs.pitch * self.max_angle
         yaw_desired = 0.0
 
-        roll, pitch, yaw = quaternions.to_euler_angles(orient_quat)
+        roll, pitch, yaw = quaternions.to_euler_angles(estimated_orient)
 
         roll_rate_desired = self.roll_pid.update(roll_desired - roll, dt)
         pitch_rate_desired = self.pitch_pid.update(pitch_desired - pitch, dt)

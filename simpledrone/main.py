@@ -4,8 +4,8 @@ from simpledrone.panda3d_gui import Panda3D_GUI
 from drone import Drone
 from simpledrone.radio_command.keyboard_rc import KeyboardRC
 from simpledrone.radio_receiver.elrs_receiver import ExpressLRSReceiver
-from simpledrone.imu.basic_imu import BasicIMU
-from simpledrone.attitude_filter.ahrs_ekf import AHRS_EKF
+from simpledrone.imu.imu import IMU
+from simpledrone.attitude_filter.ahrs_ekf import ahrsEKF
 from simpledrone.integrator.euler_integrator import EulerIntegrator
 from simpledrone.flight_controller.flight_controller import FlightController
 from simpledrone.esc_motor_prop.esc_motor_prop import ESCMotorProp
@@ -14,7 +14,7 @@ from simpledrone.integrator.euler_integrator import EulerIntegrator
 from simpledrone.frame import FPV4XSymmetric
 
 drone0 = Drone(frame=FPV4XSymmetric(), radio_command=KeyboardRC(), radio_receiver=ExpressLRSReceiver(), 
-               imu=BasicIMU(), attitude_filter=AHRS_EKF(), flight_controller=FlightController(), 
+               imu=IMU(), attitude_filter=ahrsEKF(), flight_controller=FlightController(), 
                esc_motor_prop=ESCMotorProp(), integrator=EulerIntegrator())
 
 drones = [drone0]
@@ -29,14 +29,14 @@ for drone in drones:
         gui.register_keys(drone.radio_command.get_keys_pressed())
 
 from simpledrone.events import EventQueue
-from simpledrone.drone_tasks import ReceiveRCInputs, EstimateAttitude, CommandMotorSpeeds
+from simpledrone.tasks import ReceiveRCInputs, EstimateAttitude, CommandMotorSpeeds
 
 simulation_queue = EventQueue()
 
 for drone in drones:
     simulation_queue.add_task(ReceiveRCInputs(drone))
     simulation_queue.add_task(EstimateAttitude(drone, frequency=100.0))
-    simulation_queue.add_task(CommandMotorSpeeds(drone))
+    # simulation_queue.add_task(CommandMotorSpeeds(drone))
 
 start = time.monotonic()
 
@@ -56,6 +56,8 @@ while not simulation_queue.empty():
     else:
         while time.monotonic() - start < event.t:
             pass
+    
+    # gui.step()
     
 
     

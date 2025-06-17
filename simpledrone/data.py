@@ -23,7 +23,7 @@ class State:
     pos: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
     vel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
     accel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
-    orient_quat: np.ndarray = default_ndarray([1.0, 0.0, 0.0, 0.0], np.float64)
+    orient_quat: np.ndarray = default_ndarray([1.0, 0.0, 0.0, 0.0], np.float64) # world -> body
     ang_vel: np.ndarray = default_ndarray([0.0, 0.0, 0.0], np.float64)
 
 

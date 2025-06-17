@@ -106,3 +106,8 @@ def from_euler_angles(roll: float, pitch: float, yaw: float) -> NDArray[np.float
     z = cr * cp * sy - sr * sp * cy
 
     return normalize(np.array([w, x, y, z]))
+
+def conjugate(q: NDArray[np.floating]) -> NDArray[np.floating]:
+    """Return the conjugate of a quaternion [w, x, y, z]."""
+    w, x, y, z = q
+    return np.array([w, -x, -y, -z])

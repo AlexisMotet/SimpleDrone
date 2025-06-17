@@ -17,9 +17,9 @@ class EulerIntegrator:
         R_world2body = quaternions.to_rotation_matrix(state.orient_quat)
         R_body2world = R_world2body.T
         
-        force_body = np.array([0, 0, -thrust])
+        force_body = np.array([0, 0, -thrust]) # NED convention
         force_world = R_body2world @ force_body
-        weight = np.array([0.0, 0.0, inertia.mass * 9.81])
+        weight = np.array([0.0, 0.0, inertia.mass * 9.81]) # NED
         accel_world = (force_world + weight) / inertia.mass
 
         new_state = State()
@@ -33,12 +33,8 @@ class EulerIntegrator:
 
         new_state.ang_vel = state.ang_vel + ang_acc * dt
 
-        dq = quaternions.derive(state.orient_quat, state.ang_vel)
-
-        new_state.orient_quat = state.orient_quat + dq * dt
-
-        new_state.orient_quat = quaternions.normalize(new_state.orient_quat)
-
-        assert np.isclose(np.linalg.norm(new_state.orient_quat), 1.0)
+        q_dot = quaternions.derive(state.orient_quat, state.ang_vel)
+        
+        new_state.orient_quat = quaternions.normalize(state.orient_quat + q_dot * dt)
 
         return new_state
